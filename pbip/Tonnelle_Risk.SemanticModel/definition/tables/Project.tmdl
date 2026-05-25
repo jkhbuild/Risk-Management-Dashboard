@@ -1,0 +1,144 @@
+table Project
+	lineageTag: 5d620569-8070-44d7-8ce0-6a639740565d
+
+	column project_id
+		dataType: string
+		isHidden
+		lineageTag: 2fee3a7f-1088-4534-9eb6-62b41193dc49
+		summarizeBy: none
+		sourceColumn: project_id
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column project_name
+		dataType: string
+		lineageTag: 3c03d4e7-6a6d-4da5-a8ba-099d69bac11d
+		summarizeBy: none
+		sourceColumn: project_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column contract_number
+		dataType: string
+		lineageTag: 868bb838-c381-4fd9-b727-152233877024
+		summarizeBy: none
+		sourceColumn: contract_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column contractor
+		dataType: string
+		lineageTag: c455aea9-6d2c-4055-8d3f-86fac8d1846a
+		summarizeBy: none
+		sourceColumn: contractor
+
+		annotation SummarizationSetBy = Automatic
+
+	column pmc
+		dataType: string
+		lineageTag: 16237466-3b7c-43c7-93f1-b8e69d51ea31
+		summarizeBy: none
+		sourceColumn: pmc
+
+		annotation SummarizationSetBy = Automatic
+
+	column chief_engineer
+		dataType: string
+		lineageTag: f44fe30f-6d0f-49cd-a54a-cf3f92b8cc8d
+		summarizeBy: none
+		sourceColumn: chief_engineer
+
+		annotation SummarizationSetBy = Automatic
+
+	column budget
+		dataType: int64
+		formatString: 0
+		lineageTag: cd7b8a2f-1ec3-463a-8b73-3ef78cde9077
+		summarizeBy: sum
+		sourceColumn: budget
+
+		annotation SummarizationSetBy = Automatic
+
+	column jtd
+		dataType: int64
+		formatString: 0
+		lineageTag: 5b9dad71-8f61-491d-848a-d44056b38709
+		summarizeBy: sum
+		sourceColumn: jtd
+
+		annotation SummarizationSetBy = Automatic
+
+	column ntp_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: f69780ca-b3b2-44eb-9873-857d437323f5
+		summarizeBy: none
+		sourceColumn: ntp_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column project_duration_days
+		dataType: int64
+		formatString: 0
+		lineageTag: eebd0f77-d189-48e4-874a-05dd009c8b63
+		summarizeBy: sum
+		sourceColumn: project_duration_days
+
+		annotation SummarizationSetBy = Automatic
+
+	column substantial_completion
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 321016f5-4228-4948-b4ff-3b3996c8b1da
+		summarizeBy: none
+		sourceColumn: substantial_completion
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column edition_date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 1010acbc-a4de-4f7b-8f7a-4acad752c355
+		summarizeBy: none
+		sourceColumn: edition_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition Project = m
+		mode: import
+		source =
+				let
+				    SourcePath = Source_Folder & "Tonnelle_Risk_Register_MASTER.xlsx",
+				    Source = Excel.Workbook(File.Contents(SourcePath), null, true),
+				    Sheet = Source{[Item="Project", Kind="Sheet"]}[Data],
+				    Promoted = Table.PromoteHeaders(Sheet, [PromoteAllScalars=true]),
+				    Filtered = Table.SelectRows(Promoted, each [project_name] <> null and [project_name] <> ""),
+				    Typed = Table.TransformColumnTypes(Filtered, {
+				        {"project_id", type text},
+				        {"project_name", type text},
+				        {"contract_number", type text},
+				        {"contractor", type text},
+				        {"pmc", type text},
+				        {"chief_engineer", type text},
+				        {"budget", Int64.Type},
+				        {"jtd", Int64.Type},
+				        {"ntp_date", type date},
+				        {"project_duration_days", Int64.Type},
+				        {"substantial_completion", type date},
+				        {"edition_date", type date}
+				    })
+				in
+				    Typed
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

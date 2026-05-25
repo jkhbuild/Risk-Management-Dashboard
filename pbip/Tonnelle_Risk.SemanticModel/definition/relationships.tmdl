@@ -1,0 +1,38 @@
+relationship AutoDetected_1ef07a26-e57f-4c91-912e-e99423c6ec2f
+	fromColumn: Risk_Register.project_id
+	toColumn: Project.project_id
+
+relationship 1a664725-3fa5-50be-d3ea-f01a1de00149
+	fromColumn: Risk_Updates.update_date
+	toColumn: dim_Date.Date
+
+relationship 88a8b9ca-0008-4000-8000-000000000001
+	fromColumn: Risk_Register.probability_score
+	toColumn: dim_Probability.Probability
+
+relationship 99a9babc-0009-4000-8000-000000000001
+	fromColumn: Risk_Register.max_impact_score
+	toColumn: dim_Impact.Impact
+
+relationship bbcad1e2-000b-4000-8000-000000000001
+	isActive: false
+	fromColumn: Risk_Register.cost_impact_score
+	toColumn: dim_Impact.Impact
+
+relationship ccd1e2f3-000c-4000-8000-000000000001
+	isActive: false
+	fromColumn: Risk_Register.schedule_impact_score
+	toColumn: dim_Impact.Impact
+
+relationship dde2f3a4-000d-4000-8000-000000000001
+	fromColumn: Risk_Updates_AsNext.drillthrough_risk_id
+	toColumn: Risk_Register.risk_id
+
+relationship 4878be98-8578-a947-0086-3ac2c1a4e0bd
+	fromColumn: Risk_Updates.risk_id
+	toColumn: Risk_Register.risk_id
+
+relationship aabbccdd-000e-4000-8000-000000000001
+	fromColumn: Risk_Updates_AsCurrent.drillthrough_risk_id
+	toColumn: Risk_Register.risk_id
+

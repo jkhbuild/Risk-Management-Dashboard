@@ -1,0 +1,252 @@
+table Risk_Register
+	lineageTag: 4dd7597d-2bb2-475c-b52b-1a3679c33c16
+
+	column risk_id
+		dataType: string
+		lineageTag: a319b7c7-6c6d-474a-b1e4-3b29be7a8dd1
+		summarizeBy: none
+		sourceColumn: risk_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column project_id
+		dataType: string
+		isHidden
+		lineageTag: c613421d-b2b3-4179-84cd-cce56fe0ada9
+		summarizeBy: none
+		sourceColumn: project_id
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column source_ref
+		dataType: string
+		lineageTag: c2afbdf0-9124-4b29-800d-8204ca2b2683
+		summarizeBy: none
+		sourceColumn: source_ref
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		isHidden
+		lineageTag: 0af110a6-11c7-498a-8b6a-8ff8e86dae87
+		summarizeBy: none
+		sourceColumn: status
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column risk_category
+		dataType: string
+		lineageTag: b35b8380-50eb-4ac6-af5e-f06003ecc552
+		summarizeBy: none
+		sourceColumn: risk_category
+
+		annotation SummarizationSetBy = Automatic
+
+	column risk_title
+		dataType: string
+		lineageTag: 2cbb562b-42e8-49b0-9fdf-6c994a3b2033
+		summarizeBy: none
+		sourceColumn: risk_title
+
+		annotation SummarizationSetBy = Automatic
+
+	column risk_type
+		dataType: string
+		lineageTag: e4ee0d8f-96c1-429b-a9e3-a8a7906cbc72
+		summarizeBy: none
+		sourceColumn: risk_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column probability_score
+		dataType: int64
+		formatString: 0
+		lineageTag: a5f1ee6b-199a-4c5c-8391-060a723a847a
+		summarizeBy: none
+		sourceColumn: probability_score
+
+		annotation SummarizationSetBy = User
+
+	column cost_impact_score
+		dataType: int64
+		formatString: 0
+		lineageTag: 68540d0f-5fdf-47b4-891c-9538b898ebb1
+		summarizeBy: none
+		sourceColumn: cost_impact_score
+
+		annotation SummarizationSetBy = User
+
+	column schedule_impact_score
+		dataType: int64
+		formatString: 0
+		lineageTag: e1e32941-1937-4839-b463-8db9495f16ae
+		summarizeBy: none
+		sourceColumn: schedule_impact_score
+
+		annotation SummarizationSetBy = User
+
+	column risk_score_cost
+		dataType: int64
+		formatString: 0
+		lineageTag: 21b2913b-3341-4f2d-9a69-7d1ff1b4c4ba
+		summarizeBy: none
+		sourceColumn: risk_score_cost
+
+		annotation SummarizationSetBy = User
+
+	column risk_score_schedule
+		dataType: int64
+		formatString: 0
+		lineageTag: e630a06c-a44b-4599-89b3-7041fd919dd1
+		summarizeBy: none
+		sourceColumn: risk_score_schedule
+
+		annotation SummarizationSetBy = User
+
+	column risk_score_overall
+		dataType: int64
+		formatString: 0
+		lineageTag: 38e409a0-cc34-41a9-b5d3-eb33d3691f5f
+		summarizeBy: none
+		sourceColumn: risk_score_overall
+
+		annotation SummarizationSetBy = User
+
+	column risk_level
+		dataType: string
+		lineageTag: a9850b8b-b1e0-482f-9e56-20940d729fb4
+		summarizeBy: none
+		sourceColumn: risk_level
+		sortByColumn: risk_level_sort
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	column risk_entity
+		dataType: string
+		lineageTag: 6a862cbb-4c8e-41b1-8380-5df92bd25ed4
+		summarizeBy: none
+		sourceColumn: risk_entity
+
+		annotation SummarizationSetBy = Automatic
+
+	column risk_coordinator
+		dataType: string
+		lineageTag: 2c09e4d5-c867-41d6-810a-0695c18af51e
+		summarizeBy: none
+		sourceColumn: risk_coordinator
+
+		annotation SummarizationSetBy = Automatic
+
+	column mitigation_status
+		dataType: string
+		lineageTag: 55d8a5fd-2dc7-4df4-b28d-7be99912a8f3
+		summarizeBy: none
+		sourceColumn: mitigation_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column mitigation_log
+		dataType: string
+		lineageTag: 83283f64-da7d-4db7-bd67-5dd5c43f7cc1
+		summarizeBy: none
+		sourceColumn: mitigation_log
+
+		annotation SummarizationSetBy = Automatic
+
+	column risk_level_sort
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 1dfd157b-e3bc-425e-a601-d1c50d6500a7
+		summarizeBy: none
+		sourceColumn: risk_level_sort
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = User
+
+	/// Row-wise max of cost_impact_score and schedule_impact_score. Drives the Page 1 P-I matrix Columns axis per 03 §d Page 1 visual #7. Calculated column; row context evaluates the IF per Register row. summarizeBy: none because this is an axis value, not a sum-able metric.
+	column max_impact_score = IF(Risk_Register[cost_impact_score] >= Risk_Register[schedule_impact_score], Risk_Register[cost_impact_score], Risk_Register[schedule_impact_score])
+		dataType: int64
+		formatString: 0
+		lineageTag: 55e5f6a7-0009-4000-8000-000000000001
+		summarizeBy: none
+
+		annotation SummarizationSetBy = User
+
+	/// risk_id of the row that immediately follows this row in score-DESC then id-ASC order. Used by the Risk_Updates_Mirror calculated table to redirect Risk_Updates to the "next" risk for the Page 3 right-side comparison UpdatesHistory_Next tableEx. Returns BLANK for the lowest-ranked risk (end of list). Row-by-row eval is cheap at 37 rows; same algorithm as the [Next Risk ID] measure.
+	column next_risk_id_calc =
+			VAR ThisId = Risk_Register[risk_id]
+			VAR ThisScore = Risk_Register[risk_score_overall]
+			VAR Eligible =
+			    FILTER (
+			        ALL ( Risk_Register ),
+			        ( Risk_Register[risk_score_overall] < ThisScore )
+			            || ( Risk_Register[risk_score_overall] = ThisScore
+			                && Risk_Register[risk_id] > ThisId )
+			    )
+			VAR NextRow =
+			    TOPN (
+			        1,
+			        Eligible,
+			        Risk_Register[risk_score_overall], DESC,
+			        Risk_Register[risk_id], ASC
+			    )
+			RETURN
+			    MAXX ( NextRow, Risk_Register[risk_id] )
+		dataType: string
+		lineageTag: 55e5f6a7-0009-4000-8000-000000000002
+		summarizeBy: none
+
+		annotation SummarizationSetBy = User
+
+	partition Risk_Register = m
+		mode: import
+		source =
+				let
+				    SourcePath = Source_Folder & "Tonnelle_Risk_Register_MASTER.xlsx",
+				    Source = Excel.Workbook(File.Contents(SourcePath), null, true),
+				    Sheet = Source{[Item="Risk_Register", Kind="Sheet"]}[Data],
+				    Promoted = Table.PromoteHeaders(Sheet, [PromoteAllScalars=true]),
+				    Dropped = Table.RemoveColumns(Promoted, {"next_review_date"}),
+				    Typed = Table.TransformColumnTypes(Dropped, {
+				        {"risk_id", type text},
+				        {"project_id", type text},
+				        {"source_ref", type text},
+				        {"status", type text},
+				        {"risk_category", type text},
+				        {"risk_title", type text},
+				        {"risk_type", type text},
+				        {"probability_score", Int64.Type},
+				        {"cost_impact_score", Int64.Type},
+				        {"schedule_impact_score", Int64.Type},
+				        {"risk_score_cost", Int64.Type},
+				        {"risk_score_schedule", Int64.Type},
+				        {"risk_score_overall", Int64.Type},
+				        {"risk_level", type text},
+				        {"risk_entity", type text},
+				        {"risk_coordinator", type text},
+				        {"mitigation_status", type text},
+				        {"mitigation_log", type text}
+				    }),
+				    WithSort = Table.AddColumn(Typed, "risk_level_sort",
+				        each if [risk_level] = "Low" then 1
+				            else if [risk_level] = "Medium" then 2
+				            else if [risk_level] = "High" then 3
+				            else null,
+				        Int64.Type),
+				    #"Removed Bottom Rows" = Table.RemoveLastN(WithSort,3)
+				in
+				    #"Removed Bottom Rows"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

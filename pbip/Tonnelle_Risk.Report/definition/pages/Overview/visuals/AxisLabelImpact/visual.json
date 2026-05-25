@@ -1,0 +1,72 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.9.0/schema.json",
+  "name": "AxisLabelImpact",
+  "position": {
+    "x": 26,
+    "y": 209,
+    "z": 10000,
+    "height": 280,
+    "width": 30,
+    "tabOrder": 11000
+  },
+  "visual": {
+    "visualType": "image",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "imageUrl": {
+              "expr": {
+                "Literal": {
+                  "Value": "'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMCcgaGVpZ2h0PScyODAnIHZpZXdCb3g9JzAgMCAzMCAyODAnPjx0ZXh0IHg9JzE1JyB5PScxNDAnIGZvbnQtZmFtaWx5PSdTZWdvZSBVSScgZm9udC13ZWlnaHQ9JzYwMCcgZm9udC1zaXplPScxNCcgZmlsbD0nIzFhMWExYScgdGV4dC1hbmNob3I9J21pZGRsZScgdHJhbnNmb3JtPSdyb3RhdGUoLTkwIDE1IDE0MCknIGxldHRlci1zcGFjaW5nPScyJz5JTVBBQ1Q8L3RleHQ+PC9zdmc+'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

@@ -1,0 +1,28 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_ProTooling = ["DevMode"]
+
+annotation PBI_QueryOrder = ["Risk_Register","Risk_Updates","Project","Lookups","Source_Folder","Risk_Updates_AsNext","Risk_Updates_AsCurrent"]
+
+ref table Risk_Register
+ref table Risk_Updates
+ref table Project
+ref table Lookups
+ref table dim_Date
+ref table _Measures
+ref table dim_Probability
+ref table dim_Impact
+ref table Risk_Updates_AsNext
+ref table dim_ImpactView
+ref table Risk_Updates_AsCurrent
+
+ref cultureInfo en-US
+

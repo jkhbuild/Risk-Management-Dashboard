@@ -1,0 +1,51 @@
+table Lookups
+	lineageTag: b1faa682-94a2-414d-a371-624eff9d5e8a
+
+	column list_type
+		dataType: string
+		lineageTag: 4f108088-b0a8-4359-8132-01e2a9577087
+		summarizeBy: none
+		sourceColumn: list_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column value
+		dataType: string
+		lineageTag: fe0bc95d-f493-4485-9953-cb3f1193265d
+		summarizeBy: none
+		sourceColumn: value
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Lookups = m
+		mode: import
+		source =
+				let
+				    Source = #table(
+				        type table [list_type = text, value = text],
+				        {
+				            {"category", "Construction"},
+				            {"category", "Field Condition"},
+				            {"category", "Design Change"},
+				            {"category", "Safety"},
+				            {"category", "Environmental"},
+				            {"category", "Political"},
+				            {"category", "Financial"},
+				            {"entity", "GDC"},
+				            {"entity", "CM"},
+				            {"entity", "Contractor"},
+				            {"entity", "Shared"},
+				            {"entity", "Designer"},
+				            {"status", "Open"},
+				            {"status", "Closed"},
+				            {"status", "Monitoring"},
+				            {"status", "Realized"}
+				        }
+				    )
+				in
+				    Source
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

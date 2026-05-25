@@ -1,0 +1,119 @@
+/// Power Query M mirror of Risk_Updates with an added drillthrough_risk_id column that points to the "previous risk in score order" — the Risk_Register row for which THIS update's risk is the "next" one. Loaded via M (not DAX calc table) so that Power BI's DAX dependency analyzer doesn't see Risk_Register as a calc-table dependency — that lets us add an active M:1 relationship Risk_Updates_AsNext[drillthrough_risk_id] -> Risk_Register[risk_id] without the circular dependency error that killed the earlier Risk_Updates_Mirror calc-table approach. Page 3 right-side UpdatesHistory_Next tableEx binds to this table. Drillthrough filter on Risk_Register[risk_id] = current propagates via the new relationship to drillthrough_risk_id = current, which by definition selects the rows whose original Risk_Updates[risk_id] is the next risk after current.
+table Risk_Updates_AsNext
+	lineageTag: 99cad1e2-0009-4000-8000-000000000001
+
+	column update_id
+		dataType: string
+		lineageTag: 99cad1e2-0009-4000-8000-000000000002
+		summarizeBy: none
+		sourceColumn: update_id
+
+		annotation SummarizationSetBy = User
+
+	column risk_id
+		dataType: string
+		lineageTag: 99cad1e2-0009-4000-8000-000000000003
+		summarizeBy: none
+		sourceColumn: risk_id
+
+		annotation SummarizationSetBy = User
+
+	column drillthrough_risk_id
+		dataType: string
+		lineageTag: 99cad1e2-0009-4000-8000-000000000004
+		summarizeBy: none
+		sourceColumn: drillthrough_risk_id
+
+		annotation SummarizationSetBy = User
+
+	column update_date
+		dataType: dateTime
+		formatString: MMM d
+		lineageTag: 99cad1e2-0009-4000-8000-000000000005
+		summarizeBy: none
+		sourceColumn: update_date
+
+		annotation SummarizationSetBy = User
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column author
+		dataType: string
+		lineageTag: 99cad1e2-0009-4000-8000-000000000006
+		summarizeBy: none
+		sourceColumn: author
+
+		annotation SummarizationSetBy = User
+
+	column note
+		dataType: string
+		lineageTag: 99cad1e2-0009-4000-8000-000000000007
+		summarizeBy: none
+		sourceColumn: note
+
+		annotation SummarizationSetBy = User
+
+	column updated_status
+		dataType: string
+		lineageTag: 99cad1e2-0009-4000-8000-000000000008
+		summarizeBy: none
+		sourceColumn: updated_status
+
+		annotation SummarizationSetBy = User
+
+	column probability_at_update
+		dataType: int64
+		formatString: 0
+		lineageTag: 99cad1e2-0009-4000-8000-000000000009
+		summarizeBy: none
+		sourceColumn: probability_at_update
+
+		annotation SummarizationSetBy = User
+
+	column cost_impact_at_update
+		dataType: int64
+		formatString: 0
+		lineageTag: 99cad1e2-0009-4000-8000-00000000000a
+		summarizeBy: none
+		sourceColumn: cost_impact_at_update
+
+		annotation SummarizationSetBy = User
+
+	column schedule_impact_at_update
+		dataType: int64
+		formatString: 0
+		lineageTag: 99cad1e2-0009-4000-8000-00000000000b
+		summarizeBy: none
+		sourceColumn: schedule_impact_at_update
+
+		annotation SummarizationSetBy = User
+
+	column related_risk_level = LOOKUPVALUE(Risk_Register[risk_level], Risk_Register[risk_id], Risk_Updates_AsNext[risk_id])
+		dataType: string
+		isHidden
+		lineageTag: 99cad1e2-0009-4000-8000-00000000000c
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Risk_Updates_AsNext = m
+		mode: import
+		source =
+				let
+				    Updates = Risk_Updates,
+				    Register = Risk_Register,
+				    SortedRegister = Table.Sort(Register, {{"risk_score_overall", Order.Descending}, {"risk_id", Order.Ascending}}),
+				    Indexed = Table.AddIndexColumn(SortedRegister, "Rank", 0, 1, Int64.Type),
+				    AddPrev = Table.AddColumn(Indexed, "prev_in_chain",
+				        each if [Rank] = 0 then null
+				             else Indexed{[Rank] - 1}[risk_id],
+				        type text),
+				    Mapping = Table.SelectColumns(AddPrev, {"risk_id", "prev_in_chain"}),
+				    Joined = Table.NestedJoin(Updates, {"risk_id"}, Mapping, {"risk_id"}, "_pi", JoinKind.LeftOuter),
+				    Expanded = Table.ExpandTableColumn(Joined, "_pi", {"prev_in_chain"}, {"drillthrough_risk_id"}),
+				    KeepCols = Table.SelectColumns(Expanded, {"update_id", "risk_id", "drillthrough_risk_id", "update_date", "author", "note", "updated_status", "probability_at_update", "cost_impact_at_update", "schedule_impact_at_update"})
+				in
+				    KeepCols
+
+	annotation PBI_ResultType = Table
+

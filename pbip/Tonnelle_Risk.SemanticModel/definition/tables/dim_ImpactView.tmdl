@@ -1,0 +1,39 @@
+/// Disconnected dim table powering the Page 1 P-I matrix view switcher (Overall / Cost / Schedule). 3 rows; no relationship to any other table. Bound to SlicerImpactView (Page 1) which drives [Cell Selected Impact] via SELECTEDVALUE. Replaces the prior approach of stacking three PIMatrix variants and toggling visibility with bookmarks/buttons. ViewSort exists so the slicer pills render in semantic order (Overall=1, Cost=2, Schedule=3) regardless of alphabetical sort.
+table dim_ImpactView
+	lineageTag: ab1c2d3e-000a-4000-8000-000000000001
+
+	column View
+		dataType: string
+		lineageTag: ab1c2d3e-000a-4000-8000-000000000002
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [View]
+		sortByColumn: ViewSort
+
+		annotation SummarizationSetBy = User
+
+	column ViewSort
+		dataType: int64
+		formatString: 0
+		lineageTag: ab1c2d3e-000a-4000-8000-000000000003
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [ViewSort]
+
+		annotation SummarizationSetBy = User
+
+	partition dim_ImpactView = calculated
+		mode: import
+		source =
+				SELECTCOLUMNS (
+				    GENERATESERIES ( 1, 3 ),
+				    "View",
+				        SWITCH (
+				            [Value],
+				            1, "Overall",
+				            2, "Cost",
+				            3, "Schedule"
+				        ),
+				    "ViewSort", [Value]
+				)
+

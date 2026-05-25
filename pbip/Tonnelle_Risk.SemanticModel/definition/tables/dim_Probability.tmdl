@@ -1,0 +1,39 @@
+/// Probability axis dim table (1-5 numeric + text label). Driven by a DAX calculated table extending SELECTCOLUMNS over GENERATESERIES(1,5). Decoupled from Risk_Register so the Page 1 P-I matrix axis can use a field that exposes all 5 levels in filter context regardless of Risk_Register data shape. Without this, empty (P, I) cells return BLANK from SELECTEDVALUE because the underlying Risk_Register filter context is empty, and CF rules don't fire. ProbabilityLabel added 2026-05-24 so the matrix axis renders "Very Low / Low / Med / High / Very High" instead of "1 / 2 / 3 / 4 / 5".
+table dim_Probability
+	lineageTag: 66f6a7b8-0006-4000-8000-000000000001
+
+	column Probability
+		dataType: int64
+		formatString: 0
+		lineageTag: 66f6a7b8-0006-4000-8000-000000000002
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Probability]
+
+		annotation SummarizationSetBy = User
+
+	column ProbabilityLabel
+		dataType: string
+		lineageTag: 66f6a7b8-0006-4000-8000-000000000003
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [ProbabilityLabel]
+		sortByColumn: Probability
+
+	partition dim_Probability = calculated
+		mode: import
+		source =
+				SELECTCOLUMNS (
+				    GENERATESERIES ( 1, 5 ),
+				    "Probability", [Value],
+				    "ProbabilityLabel",
+				        SWITCH (
+				            [Value],
+				            1, "Very Low",
+				            2, "Low",
+				            3, "Med",
+				            4, "High",
+				            5, "Very High"
+				        )
+				)
+

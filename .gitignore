@@ -1,0 +1,42 @@
+# Excel temp/lock files
+~$*.xlsx
+~$*.xls
+~$*.xlsm
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Power BI Desktop user/local state + binary cache
+**/.pbi/
+**/CustomVisuals/
+**/RegisteredResources/
+
+# pbir-cli working directory
+.pbir/
+
+# Rollback / legacy binaries — never touch
+archive/
+
+# Legacy scratch PBIP at root (superseded by pbip/Tonnelle_Risk.pbip)
+riskregister.Report/
+riskregister.SemanticModel/
+
+# Claude Code per-user / per-machine config (settings + project skill copies)
+.claude/
+
+# Deprecated agents directory (duplicate of .claude/skills/ from older CLI versions)
+.agents/

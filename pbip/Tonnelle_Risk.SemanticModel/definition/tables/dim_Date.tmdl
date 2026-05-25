@@ -1,0 +1,79 @@
+table dim_Date
+	lineageTag: 301041ad-7dd6-4066-ba40-229c2188ff77
+	dataCategory: Time
+
+	column Date
+		isKey
+		formatString: General Date
+		lineageTag: d829e10a-209d-414f-b591-8033bb22b33c
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year
+		formatString: 0
+		lineageTag: 0685da08-7d8a-4967-a16d-4ea9373e11c7
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Year]
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthNumber
+		isHidden
+		formatString: 0
+		lineageTag: 34ba5a3c-d1c6-40ff-9659-b3e17fcf5b06
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [MonthNumber]
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthName
+		lineageTag: c4ac90c0-79af-4c4c-880e-0a9609371e77
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [MonthName]
+		sortByColumn: MonthNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	column YearMonth
+		lineageTag: 9afb5c90-6709-4f7a-a44f-67efc5a01510
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [YearMonth]
+		sortByColumn: YearMonthSort
+
+		annotation SummarizationSetBy = Automatic
+
+	column YearMonthSort
+		isHidden
+		formatString: 0
+		lineageTag: 2684c75f-bc9c-4866-975a-06faa9bee42a
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [YearMonthSort]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_Date = calculated
+		mode: import
+		source =
+				
+				ADDCOLUMNS (
+				    CALENDAR (
+				        DATE ( YEAR ( MIN ( Risk_Updates[update_date] ) ), 1, 1 ),
+				        DATE ( YEAR ( MAX ( Risk_Updates[update_date] ) ), 12, 31 )
+				    ),
+				    "Year", YEAR ( [Date] ),
+				    "MonthNumber", MONTH ( [Date] ),
+				    "MonthName", FORMAT ( [Date], "mmm" ),
+				    "YearMonth", FORMAT ( [Date], "yyyy-mm" ),
+				    "YearMonthSort", YEAR ( [Date] ) * 100 + MONTH ( [Date] )
+				)
+
+	annotation PBI_Id = 4028b1846c77435db8fdfb497b0b9f87
+

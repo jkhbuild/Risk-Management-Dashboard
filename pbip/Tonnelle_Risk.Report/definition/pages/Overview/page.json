@@ -1,0 +1,71 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+  "name": "Overview",
+  "displayName": "Executive Overview",
+  "displayOption": "FitToPage",
+  "height": 720,
+  "width": 1280,
+  "visualInteractions": [
+    {
+      "source": "PIMatrix",
+      "target": "KPITotalRisks",
+      "type": "NoFilter"
+    },
+    {
+      "source": "PIMatrix",
+      "target": "KPIHighRisks",
+      "type": "NoFilter"
+    },
+    {
+      "source": "PIMatrix",
+      "target": "KPIMediumRisks",
+      "type": "NoFilter"
+    },
+    {
+      "source": "PIMatrix",
+      "target": "KPILowRisks",
+      "type": "NoFilter"
+    },
+    {
+      "source": "PIMatrix",
+      "target": "KPIAvgScore",
+      "type": "NoFilter"
+    },
+    {
+      "source": "PIMatrix",
+      "target": "RisksByCategory",
+      "type": "NoFilter"
+    },
+    {
+      "source": "PIMatrix",
+      "target": "RiskActivity",
+      "type": "NoFilter"
+    }
+  ],
+  "objects": {
+    "background": [
+      {
+        "properties": {
+          "color": {
+            "solid": {
+              "color": {
+                "expr": {
+                  "Literal": {
+                    "Value": "'#FFFFFF'"
+                  }
+                }
+              }
+            }
+          },
+          "transparency": {
+            "expr": {
+              "Literal": {
+                "Value": "0D"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

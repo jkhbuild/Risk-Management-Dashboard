@@ -1,0 +1,990 @@
+table _Measures
+	lineageTag: 7c3c2e1a-9b1d-4f12-8c5d-2f4b6a1e7d10
+
+	/// Distinct risk count in the current filter context. Page 1 Total Risks KPI card; Page 2 implicit total.
+	measure 'Total Risks' = COUNTROWS ( Risk_Register )
+		formatString: 0
+		displayFolder: Counts
+		lineageTag: 11a1b1c1-0001-4000-8000-000000000001
+
+	/// Count of risks where risk_level = "High". Page 1 High Risks KPI card (conditional value-color if > 10). `+ 0` makes the card display 0 instead of (Blank) when a cross-filter (e.g., clicking an empty PIMatrix cell) yields no matching risks.
+	measure 'High Risks' =
+			CALCULATE (
+			    COUNTROWS ( Risk_Register ),
+			    Risk_Register[risk_level] = "High",
+			    FILTER ( Risk_Register, [Current Status] IN { "Open", "Monitoring" } )
+			) + 0
+		formatString: 0
+		displayFolder: Counts
+		lineageTag: 11a1b1c1-0001-4000-8000-000000000002
+
+	/// Count of risks where risk_level = "Medium". Page 1 Medium Risks KPI card. `+ 0` makes the card display 0 instead of (Blank) when a cross-filter yields no matching risks.
+	measure 'Medium Risks' =
+			CALCULATE (
+			    COUNTROWS ( Risk_Register ),
+			    Risk_Register[risk_level] = "Medium",
+			    FILTER ( Risk_Register, [Current Status] IN { "Open", "Monitoring" } )
+			) + 0
+		formatString: 0
+		displayFolder: Counts
+		lineageTag: 11a1b1c1-0001-4000-8000-000000000003
+
+	/// Count of risks where risk_level = "Low". Page 1 Low Risks KPI card. `+ 0` makes the card display 0 instead of (Blank) when a cross-filter yields no matching risks.
+	measure 'Low Risks' =
+			CALCULATE (
+			    COUNTROWS ( Risk_Register ),
+			    Risk_Register[risk_level] = "Low",
+			    FILTER ( Risk_Register, [Current Status] IN { "Open", "Monitoring" } )
+			) + 0
+		formatString: 0
+		displayFolder: Counts
+		lineageTag: 11a1b1c1-0001-4000-8000-000000000004
+
+	/// Average risk_score_overall across filtered risks. Page 1 Avg Score KPI card. COALESCE handles the BLANK that AVERAGE returns when a cross-filter (e.g., clicking an empty PIMatrix cell) yields no matching risks - displays 0.0 instead of (Blank).
+	measure 'Avg Risk Score Overall' = COALESCE ( AVERAGE ( Risk_Register[risk_score_overall] ), 0 )
+		formatString: 0.0
+		displayFolder: Scores
+		lineageTag: 22b2c2d2-0002-4000-8000-000000000001
+
+	/// Average risk_score_cost across filtered risks. Reserved for Phase 5+ analysis; not on locked pages (Phase 3 §b).
+	measure 'Avg Cost Score' = AVERAGE ( Risk_Register[risk_score_cost] )
+		formatString: 0.0
+		displayFolder: Scores
+		lineageTag: 22b2c2d2-0002-4000-8000-000000000002
+
+	/// Average risk_score_schedule across filtered risks. Reserved for Phase 5+ analysis; not on locked pages (Phase 3 §b).
+	measure 'Avg Schedule Score' = AVERAGE ( Risk_Register[risk_score_schedule] )
+		formatString: 0.0
+		displayFolder: Scores
+		lineageTag: 22b2c2d2-0002-4000-8000-000000000003
+
+	/// Max risk_score_overall in the current filter context. Reserved for Phase 5+ analysis; not on locked pages (Phase 3 §b).
+	measure 'Max Risk Score' = MAX ( Risk_Register[risk_score_overall] )
+		formatString: 0
+		displayFolder: Scores
+		lineageTag: 22b2c2d2-0002-4000-8000-000000000004
+
+	/// Count of Risk_Updates rows in the current filter context. Page 1 Risk Activity Over Time line (per 03 §d Page 1 visual #9): X-axis dim_Date[YearMonth] continuous, Y-axis [Updates Count] integer. Filter context propagates from dim_Date via the active M:1 update_date->Date relationship; no CALCULATE needed.
+	measure 'Updates Count' = COUNTROWS ( Risk_Updates )
+		formatString: 0
+		displayFolder: TimeIntel
+		lineageTag: 33c3d3e3-0003-4000-8000-000000000001
+
+	/// Days between TODAY() and the most-recent update_date for the current risk-row context. Returns BLANK when no Updates rows exist for the risk (per 03 §b TimeIntel intent). Page 2 Top Risks table column "Days Since Last Update"; Page 3 meta strip. MAX is storage-engine scalar; M:1 relationship propagates the Register row filter back to Updates.
+	measure 'Days Since Last Update' =
+			VAR LastUpdate = MAX ( Risk_Updates[update_date] )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( LastUpdate ),
+			        DATEDIFF ( LastUpdate, TODAY (), DAY )
+			    )
+		formatString: 0
+		displayFolder: TimeIntel
+		lineageTag: 33c3d3e3-0003-4000-8000-000000000002
+
+	/// Rounded-pill SVG data URL labeled with the current row's risk_level, colored from the 03 §c1 palette (High #de425b, Medium #e8b450, Low #488f31; text white on High/Low, #1a1a1a on Medium yellow per 03 §c1 heatmap rule). Returns BLANK when risk_level is not a single value. Page 2 Top Risks "Level" column; Page 3 meta strip. Column carrying this measure must have Data category = Image URL (set via Desktop UI; see 07 §d). Accepted DAX-markup tradeoff per 03 §f-1. NOTE: variable named `LevelText` (not `Level`) because Power BI Desktop's DAX parser rejects `Level` as an identifier (collides with hierarchy-level reserved tokens; see 07 §f-9).
+	measure 'Risk Level Pill SVG' =
+			
+			VAR LevelText = SELECTEDVALUE ( Risk_Register[risk_level] )
+			VAR Fill =
+			    SWITCH (
+			        LevelText,
+			        "High",   "#de425b",
+			        "Medium", "#e8b450",
+			        "Low",    "#488f31"
+			    )
+			VAR TextColor = IF ( LevelText = "Medium", "#1a1a1a", "#FFFFFF" )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( LevelText ),
+			        "data:image/svg+xml;utf8,"
+			            & "<svg xmlns='http://www.w3.org/2000/svg' width='60' height='20' viewBox='0 0 60 20'>"
+			            & "<rect x='1' y='1' width='58' height='18' rx='9' ry='9' fill='" & Fill & "'/>"
+			            & "<text x='30' y='14' font-family='Segoe UI' font-weight='600' font-size='11' fill='"
+			            & TextColor & "' text-anchor='middle'>" & LevelText & "</text>"
+			            & "</svg>"
+			    )
+		displayFolder: Display
+		lineageTag: 44d4e4f4-0004-4000-8000-000000000001
+		dataCategory: ImageUrl
+
+	/// Potential P*I score for the current matrix cell, derived from the dim_Probability and dim_Impact axis values. Returns the cell's score even when no risks exist in Risk_Register for that combination - SELECTEDVALUE works on the dim tables (which have all 5 values 1-5 regardless of Risk_Register data) so the filter context always exposes the axis value. Drives the Page 1 P-I matrix cell heatmap so empty cells (P=2,I=2 and P=3,I=2 in current data) still get colored by their score band. ISBLANK guard avoids coloring grand totals or out-of-context cells.
+	measure 'Cell PI Score' =
+			VAR p = SELECTEDVALUE ( dim_Probability[Probability] )
+			VAR i = SELECTEDVALUE ( dim_Impact[Impact] )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( p ) && NOT ISBLANK ( i ),
+			        p * i
+			    )
+		formatString: 0
+		displayFolder: Display
+		lineageTag: 55e5f6a7-0005-4000-8000-000000000001
+
+	/// COUNTROWS(Risk_Register) + 0 inside an IF-guard on the axis values. The +0 keeps backColor/fontColor CF firing on empty 5x5 matrix cells (CF skips truly BLANK cells, so +0 is required there). The outer ISBLANK guard returns BLANK for the (Blank) row/column that Power BI's showAll: true on dim_Probability/dim_Impact otherwise injects at the edges - without the guard, the (Blank) cells render "0" and produce stray-zero rows/columns. Used only in the Page 1 P-I matrix Values.
+	measure 'Cell Total Risks' =
+			VAR P = SELECTEDVALUE ( dim_Probability[Probability] )
+			VAR I = SELECTEDVALUE ( dim_Impact[Impact] )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( P ) && NOT ISBLANK ( I ),
+			        COUNTROWS ( Risk_Register ) + 0
+			    )
+		formatString: 0
+		displayFolder: Display
+		lineageTag: 55e5f6a7-0005-4000-8000-000000000002
+
+	/// Single-value risk_title of the drilled-into risk on Page 3. SELECTEDVALUE on Risk_Register[risk_title] with "No risk selected" fallback when the filter context does not reduce to one risk (page opened outside drillthrough during build, or future multi-select scenario). Powers the Page 3 RiskTitle card (Semibold 22pt header). No CALCULATE, no iterator: storage-engine scalar against the 37-row Risk_Register.
+	measure 'Selected Risk Title' = SELECTEDVALUE ( Risk_Register[risk_title], "No risk selected" )
+		displayFolder: Display
+		lineageTag: 66f6a7b8-0006-4000-8000-000000000001
+
+	/// Chronological mitigation narrative for the drilled-into risk on Page 3, built from Risk_Updates rows (newest first) rather than the static concatenated Risk_Register[mitigation_log] column. Each line is "M/D/YYYY - note" with UNICHAR(10) line breaks between entries; Power BI Desktop's card visual renders these as actual newlines when labels.wordWrap is on. Filter context propagates from the page-level drillthrough filter on Risk_Register[risk_id] through the active M:1 Risk_Updates->Risk_Register relationship, so Risk_Updates naturally reduces to the current risk's history. SELECTEDVALUE guard returns "" when no single risk is in context (page opened outside drillthrough). The orphaned Risk_Register[mitigation_log] column remains in the model unused; available as a fallback or for future tooltips.
+	measure 'Selected Risk Mitigation Log' =
+			VAR CurrentRiskId = SELECTEDVALUE ( Risk_Register[risk_id] )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( CurrentRiskId ),
+			        CONCATENATEX (
+			            Risk_Updates,
+			            FORMAT ( Risk_Updates[update_date], "M/D/YYYY" ) & " - " & Risk_Updates[note],
+			            UNICHAR ( 10 ),
+			            Risk_Updates[update_date],
+			            DESC
+			        ),
+			        ""
+			    )
+		displayFolder: Display
+		lineageTag: 66f6a7b8-0006-4000-8000-000000000002
+
+	/// Risk ID of the next-lower-score risk relative to the drilled-into risk on Page 3 (ranking by risk_score_overall desc with risk_id ascending as tie-breaker). TOPN(1, FILTER(ALL(Risk_Register), score-tiebreak rule)) returns the row below the current one; MAXX extracts its risk_id. Returns BLANK at the floor of the sorted list (lowest-scored risk has no "next"). Helper for the Next Risk * measures that power the right-side comparison panel on Page 3.
+	measure 'Next Risk ID' =
+			VAR CurrentId = SELECTEDVALUE ( Risk_Register[risk_id] )
+			VAR CurrentScore = SELECTEDVALUE ( Risk_Register[risk_score_overall] )
+			VAR Eligible =
+			    FILTER (
+			        ALL ( Risk_Register ),
+			        NOT ISBLANK ( CurrentId )
+			            && (
+			                ( Risk_Register[risk_score_overall] < CurrentScore )
+			                    || ( Risk_Register[risk_score_overall] = CurrentScore
+			                        && Risk_Register[risk_id] > CurrentId )
+			            )
+			    )
+			VAR NextRow =
+			    TOPN (
+			        1,
+			        Eligible,
+			        Risk_Register[risk_score_overall], DESC,
+			        Risk_Register[risk_id], ASC
+			    )
+			RETURN
+			    MAXX ( NextRow, Risk_Register[risk_id] )
+		displayFolder: NextRisk
+		lineageTag: 77a8b9c0-0007-4000-8000-000000000001
+
+	/// risk_title of the next-lower-score risk. Page 3 right-side RiskTitle_Next card. Falls back to "(no next risk)" when the current risk is the floor of the sorted list.
+	measure 'Next Risk Title' =
+			VAR NextId = [Next Risk ID]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( NextId ),
+			        CALCULATE (
+			            MAX ( Risk_Register[risk_title] ),
+			            ALL ( Risk_Register ),
+			            Risk_Register[risk_id] = NextId
+			        ),
+			        "(no next risk)"
+			    )
+		displayFolder: NextRisk
+		lineageTag: 77a8b9c0-0007-4000-8000-000000000002
+
+	/// risk_category of the next-lower-score risk. Page 3 right-side MetaStrip_Next column.
+	measure 'Next Risk Category' =
+			VAR NextId = [Next Risk ID]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( NextId ),
+			        CALCULATE (
+			            MAX ( Risk_Register[risk_category] ),
+			            ALL ( Risk_Register ),
+			            Risk_Register[risk_id] = NextId
+			        )
+			    )
+		displayFolder: NextRisk
+		lineageTag: 77a8b9c0-0007-4000-8000-000000000003
+
+	/// risk_entity of the next-lower-score risk. Page 3 right-side MetaStrip_Next column.
+	measure 'Next Risk Entity' =
+			VAR NextId = [Next Risk ID]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( NextId ),
+			        CALCULATE (
+			            MAX ( Risk_Register[risk_entity] ),
+			            ALL ( Risk_Register ),
+			            Risk_Register[risk_id] = NextId
+			        )
+			    )
+		displayFolder: NextRisk
+		lineageTag: 77a8b9c0-0007-4000-8000-000000000004
+
+	/// risk_coordinator of the next-lower-score risk. Page 3 right-side MetaStrip_Next column.
+	measure 'Next Risk Coordinator' =
+			VAR NextId = [Next Risk ID]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( NextId ),
+			        CALCULATE (
+			            MAX ( Risk_Register[risk_coordinator] ),
+			            ALL ( Risk_Register ),
+			            Risk_Register[risk_id] = NextId
+			        )
+			    )
+		displayFolder: NextRisk
+		lineageTag: 77a8b9c0-0007-4000-8000-000000000005
+
+	/// risk_score_overall of the next-lower-score risk. Page 3 right-side MetaStrip_Next column.
+	measure 'Next Risk Score' =
+			VAR NextId = [Next Risk ID]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( NextId ),
+			        CALCULATE (
+			            MAX ( Risk_Register[risk_score_overall] ),
+			            ALL ( Risk_Register ),
+			            Risk_Register[risk_id] = NextId
+			        )
+			    )
+		formatString: 0
+		displayFolder: NextRisk
+		lineageTag: 77a8b9c0-0007-4000-8000-000000000006
+
+	/// SVG data URL pill rendering risk_level of the next-lower-score risk. Mirrors Risk Level Pill SVG geometry/colors. dataCategory: ImageUrl so tableEx renders as image. Page 3 right-side MetaStrip_Next "Level" column.
+	measure 'Next Risk Level Pill SVG' =
+			VAR NextId = [Next Risk ID]
+			VAR LevelText =
+			    IF (
+			        NOT ISBLANK ( NextId ),
+			        CALCULATE (
+			            MAX ( Risk_Register[risk_level] ),
+			            ALL ( Risk_Register ),
+			            Risk_Register[risk_id] = NextId
+			        )
+			    )
+			VAR Fill =
+			    SWITCH (
+			        LevelText,
+			        "High",   "#de425b",
+			        "Medium", "#e8b450",
+			        "Low",    "#488f31"
+			    )
+			VAR TextColor = IF ( LevelText = "Medium", "#1a1a1a", "#FFFFFF" )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( LevelText ),
+			        "data:image/svg+xml;utf8,"
+			            & "<svg xmlns='http://www.w3.org/2000/svg' width='60' height='20' viewBox='0 0 60 20'>"
+			            & "<rect x='1' y='1' width='58' height='18' rx='9' ry='9' fill='" & Fill & "'/>"
+			            & "<text x='30' y='14' font-family='Segoe UI' font-weight='600' font-size='11' fill='"
+			            & TextColor & "' text-anchor='middle'>" & LevelText & "</text>"
+			            & "</svg>"
+			    )
+		displayFolder: NextRisk
+		lineageTag: 77a8b9c0-0007-4000-8000-000000000007
+		dataCategory: ImageUrl
+
+	/// CONCATENATEX of Risk_Updates rows for the next-lower-score risk; mirrors Selected Risk Mitigation Log. Returns "" when no next risk. Page 3 right-side MitigationParagraph_Next card.
+	measure 'Next Risk Mitigation Log' =
+			VAR NextId = [Next Risk ID]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( NextId ),
+			        CALCULATE (
+			            CONCATENATEX (
+			                Risk_Updates,
+			                FORMAT ( Risk_Updates[update_date], "M/D/YYYY" ) & " - " & Risk_Updates[note],
+			                UNICHAR ( 10 ),
+			                Risk_Updates[update_date], DESC
+			            ),
+			            ALL ( Risk_Register ),
+			            Risk_Register[risk_id] = NextId
+			        ),
+			        ""
+			    )
+		displayFolder: NextRisk
+		lineageTag: 77a8b9c0-0007-4000-8000-000000000008
+
+	/// Same as Cell Total Risks but uses the inactive Risk_Register[cost_impact_score] -> dim_Impact[Impact] relationship via USERELATIONSHIP. Drives the Cost-variant PI matrix on Page 1 via [Cell Selected Impact]. Includes the same ISBLANK guard against the (Blank) edge row/column injected by showAll.
+	measure 'Cell Total Risks (Cost)' =
+			VAR P = SELECTEDVALUE ( dim_Probability[Probability] )
+			VAR I = SELECTEDVALUE ( dim_Impact[Impact] )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( P ) && NOT ISBLANK ( I ),
+			        CALCULATE (
+			            COUNTROWS ( Risk_Register ) + 0,
+			            USERELATIONSHIP ( Risk_Register[cost_impact_score], dim_Impact[Impact] )
+			        )
+			    )
+		formatString: 0
+		displayFolder: Display
+		lineageTag: 55e5f6a7-0005-4000-8000-000000000003
+
+	/// Same as Cell Total Risks but uses the inactive Risk_Register[schedule_impact_score] -> dim_Impact[Impact] relationship via USERELATIONSHIP. Drives the Schedule view of the PIMatrix on Page 1 via [Cell Selected Impact]. Includes the same ISBLANK guard against the (Blank) edge row/column injected by showAll.
+	measure 'Cell Total Risks (Schedule)' =
+			VAR P = SELECTEDVALUE ( dim_Probability[Probability] )
+			VAR I = SELECTEDVALUE ( dim_Impact[Impact] )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( P ) && NOT ISBLANK ( I ),
+			        CALCULATE (
+			            COUNTROWS ( Risk_Register ) + 0,
+			            USERELATIONSHIP ( Risk_Register[schedule_impact_score], dim_Impact[Impact] )
+			        )
+			    )
+		formatString: 0
+		displayFolder: Display
+		lineageTag: 55e5f6a7-0005-4000-8000-000000000004
+
+	/// Full updates history for the next-lower-score risk: "M/D/YYYY  ·  Author  ·  Note" per line, newest first. Used by UpdatesHistory_Next card on Page 3 (tableEx form would inherit the page-filter propagation on Risk_Register[risk_id] through the active Risk_Updates -> Risk_Register relationship and show the current risk's updates instead of the next risk's; CALCULATE + ALL(Risk_Register) here breaks that propagation at the measure level, which is the only DAX-side path to render data from a different risk than the drillthrough subject).
+	measure 'Next Risk Updates Detail' =
+			VAR NextId = [Next Risk ID]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( NextId ),
+			        CALCULATE (
+			            CONCATENATEX (
+			                Risk_Updates,
+			                FORMAT ( Risk_Updates[update_date], "M/D/YYYY" )
+			                    & "  "
+			                    & UNICHAR ( 183 )
+			                    & "  "
+			                    & Risk_Updates[author]
+			                    & "  "
+			                    & UNICHAR ( 183 )
+			                    & "  "
+			                    & Risk_Updates[note],
+			                UNICHAR ( 10 ),
+			                Risk_Updates[update_date], DESC
+			            ),
+			            ALL ( Risk_Register ),
+			            Risk_Register[risk_id] = NextId
+			        ),
+			        ""
+			    )
+		displayFolder: NextRisk
+		lineageTag: 77a8b9c0-0007-4000-8000-000000000009
+
+	/// Switcher measure driving the Page 1 PIMatrix Values projection. Reads dim_ImpactView[View] from the SlicerImpactView slicer (a disconnected single-table dim) and routes the cell count through one of three sibling measures: Cell Total Risks (Overall, default), Cell Total Risks (Cost), Cell Total Risks (Schedule). Default fallback "Overall" applies when no slicer selection is active (e.g. on first load). SelectedView variable name avoids the "View" reserved-token risk (per the LevelText precedent in Risk Level Pill SVG, 07 §f-9).
+	measure 'Cell Selected Impact' =
+			VAR SelectedView = SELECTEDVALUE ( dim_ImpactView[View], "Overall" )
+			RETURN
+			    SWITCH (
+			        SelectedView,
+			        "Cost", [Cell Total Risks (Cost)],
+			        "Schedule", [Cell Total Risks (Schedule)],
+			        [Cell Total Risks]
+			    )
+		formatString: 0
+		displayFolder: Display
+		lineageTag: 55e5f6a7-0005-4000-8000-000000000005
+
+	/// Current status of selected risk, latest non-null Risk_Updates[updated_status] (newest-first).
+	measure 'Current Status' =
+			VAR CurrentRiskId = SELECTEDVALUE ( Risk_Register[risk_id] )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( CurrentRiskId ),
+			        CALCULATE (
+			            VAR LastRow =
+			                TOPN (
+			                    1,
+			                    FILTER ( Risk_Updates, NOT ISBLANK ( Risk_Updates[updated_status] ) ),
+			                    Risk_Updates[update_date], DESC,
+			                    Risk_Updates[update_id], DESC
+			                )
+			            RETURN MAXX ( LastRow, Risk_Updates[updated_status] )
+			        )
+			    )
+		displayFolder: Display
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000020
+
+	/// Open + Monitoring count. Replaces 'Total Risks' as Page 1 KPI.
+	/// Open + Monitoring count. Page 1 Total/Active Risks KPI card. `+ 0` makes the card display 0 instead of (Blank) when a cross-filter (e.g., clicking an empty PIMatrix cell) yields no matching risks.
+	measure 'Active Risks' =
+			CALCULATE (
+			    COUNTROWS ( Risk_Register ),
+			    FILTER ( Risk_Register, [Current Status] IN { "Open", "Monitoring" } )
+			) + 0
+		formatString: 0
+		displayFolder: Counts
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000021
+
+	measure 'Realized Risks' =
+			CALCULATE (
+			    COUNTROWS ( Risk_Register ),
+			    FILTER ( Risk_Register, [Current Status] = "Realized" )
+			)
+		formatString: 0
+		displayFolder: Counts
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000022
+
+	measure 'Closed Risks' =
+			CALCULATE (
+			    COUNTROWS ( Risk_Register ),
+			    FILTER ( Risk_Register, [Current Status] = "Closed" )
+			)
+		formatString: 0
+		displayFolder: Counts
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000023
+
+	/// 1=Open, 2=Monitoring, 3=Realized, 4=Closed. Drives Page 3 status timeline.
+	measure 'Status Numeric' =
+			VAR S = MAX ( Risk_Updates[updated_status] )
+			RETURN SWITCH ( S, "Open", 1, "Monitoring", 2, "Realized", 3, "Closed", 4 )
+		formatString: 0
+		displayFolder: Display
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000024
+
+	measure 'Status Numeric Next' =
+			VAR S = MAX ( Risk_Updates_AsNext[updated_status] )
+			RETURN SWITCH ( S, "Open", 1, "Monitoring", 2, "Realized", 3, "Closed", 4 )
+		formatString: 0
+		displayFolder: NextRisk
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000025
+
+	measure 'Latest Probability' =
+			VAR FromUpdates =
+			    CALCULATE (
+			        VAR LastRow =
+			            TOPN (
+			                1,
+			                FILTER ( Risk_Updates, NOT ISBLANK ( Risk_Updates[probability_at_update] ) ),
+			                Risk_Updates[update_date], DESC,
+			                Risk_Updates[update_id], DESC
+			            )
+			        RETURN MAXX ( LastRow, Risk_Updates[probability_at_update] )
+			    )
+			RETURN COALESCE ( FromUpdates, MAX ( Risk_Register[probability_score] ) )
+		formatString: 0
+		displayFolder: ScoreHistory
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000030
+
+	measure 'Latest Cost Impact' =
+			VAR FromUpdates =
+			    CALCULATE (
+			        VAR LastRow =
+			            TOPN (
+			                1,
+			                FILTER ( Risk_Updates, NOT ISBLANK ( Risk_Updates[cost_impact_at_update] ) ),
+			                Risk_Updates[update_date], DESC,
+			                Risk_Updates[update_id], DESC
+			            )
+			        RETURN MAXX ( LastRow, Risk_Updates[cost_impact_at_update] )
+			    )
+			RETURN COALESCE ( FromUpdates, MAX ( Risk_Register[cost_impact_score] ) )
+		formatString: 0
+		displayFolder: ScoreHistory
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000031
+
+	measure 'Latest Schedule Impact' =
+			VAR FromUpdates =
+			    CALCULATE (
+			        VAR LastRow =
+			            TOPN (
+			                1,
+			                FILTER ( Risk_Updates, NOT ISBLANK ( Risk_Updates[schedule_impact_at_update] ) ),
+			                Risk_Updates[update_date], DESC,
+			                Risk_Updates[update_id], DESC
+			            )
+			        RETURN MAXX ( LastRow, Risk_Updates[schedule_impact_at_update] )
+			    )
+			RETURN COALESCE ( FromUpdates, MAX ( Risk_Register[schedule_impact_score] ) )
+		formatString: 0
+		displayFolder: ScoreHistory
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000032
+
+	measure 'Latest Risk Score Overall' = [Latest Probability] * IF ( [Latest Cost Impact] >= [Latest Schedule Impact], [Latest Cost Impact], [Latest Schedule Impact] )
+		formatString: 0
+		displayFolder: ScoreHistory
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000033
+
+	/// Effective overall risk score AS-OF the current update row with lookback + lifecycle awareness:
+	/// - If the risk's latest status (on or before this date) is "Closed" → returns 0 (risk no longer carries score).
+	/// - If "Realized" → returns the score frozen at the realization moment (the first update where status became Realized) and persists forward unchanged.
+	/// - Otherwise → P*MAX(C,S) where each component uses lookback semantics: the latest non-null *_at_update value for this risk on or before this date, falling back to the Risk_Register baseline.
+	measure 'Score At Update' =
+			VAR ThisDate = MAX ( Risk_Updates[update_date] )
+			VAR ThisRisk = SELECTEDVALUE ( Risk_Register[risk_id] )
+			// Workaround for broken Risk_Updates -> Risk_Register filter propagation in Service:
+			// the chart's X-axis iterates over all Risk_Updates[update_date] values (filter doesn't
+			// propagate per the M:1 relationship). Returning BLANK for dates where ThisRisk has no
+			// actual update row makes the chart's remove-blanks hide those X values.
+			VAR HasUpdateOnThisDateForThisRisk =
+			    COUNTROWS (
+			        FILTER (
+			            ALL ( Risk_Updates ),
+			            Risk_Updates[risk_id] = ThisRisk
+			                && Risk_Updates[update_date] = ThisDate
+			        )
+			    ) > 0
+			VAR LatestStatus =
+			    MAXX (
+			        TOPN (
+			            1,
+			            FILTER (
+			                ALL ( Risk_Updates ),
+			                Risk_Updates[risk_id] = ThisRisk
+			                    && NOT ISBLANK ( Risk_Updates[updated_status] )
+			                    && Risk_Updates[update_date] <= ThisDate
+			            ),
+			            Risk_Updates[update_date], DESC,
+			            Risk_Updates[update_id], DESC
+			        ),
+			        Risk_Updates[updated_status]
+			    )
+			// For Realized risks: freeze scoring date at the first Realized update; otherwise current row
+			VAR ScoreDate =
+			    IF (
+			        LatestStatus = "Realized",
+			        CALCULATE (
+			            MIN ( Risk_Updates[update_date] ),
+			            FILTER (
+			                ALL ( Risk_Updates ),
+			                Risk_Updates[risk_id] = ThisRisk
+			                    && Risk_Updates[updated_status] = "Realized"
+			            )
+			        ),
+			        ThisDate
+			    )
+			VAR PLookback =
+			    MAXX (
+			        TOPN (
+			            1,
+			            FILTER (
+			                ALL ( Risk_Updates ),
+			                Risk_Updates[risk_id] = ThisRisk
+			                    && NOT ISBLANK ( Risk_Updates[probability_at_update] )
+			                    && Risk_Updates[update_date] <= ScoreDate
+			            ),
+			            Risk_Updates[update_date], DESC,
+			            Risk_Updates[update_id], DESC
+			        ),
+			        Risk_Updates[probability_at_update]
+			    )
+			VAR CLookback =
+			    MAXX (
+			        TOPN (
+			            1,
+			            FILTER (
+			                ALL ( Risk_Updates ),
+			                Risk_Updates[risk_id] = ThisRisk
+			                    && NOT ISBLANK ( Risk_Updates[cost_impact_at_update] )
+			                    && Risk_Updates[update_date] <= ScoreDate
+			            ),
+			            Risk_Updates[update_date], DESC,
+			            Risk_Updates[update_id], DESC
+			        ),
+			        Risk_Updates[cost_impact_at_update]
+			    )
+			VAR SLookback =
+			    MAXX (
+			        TOPN (
+			            1,
+			            FILTER (
+			                ALL ( Risk_Updates ),
+			                Risk_Updates[risk_id] = ThisRisk
+			                    && NOT ISBLANK ( Risk_Updates[schedule_impact_at_update] )
+			                    && Risk_Updates[update_date] <= ScoreDate
+			            ),
+			            Risk_Updates[update_date], DESC,
+			            Risk_Updates[update_id], DESC
+			        ),
+			        Risk_Updates[schedule_impact_at_update]
+			    )
+			VAR P = COALESCE ( PLookback, MAX ( Risk_Register[probability_score] ) )
+			VAR C = COALESCE ( CLookback, MAX ( Risk_Register[cost_impact_score] ) )
+			VAR S = COALESCE ( SLookback, MAX ( Risk_Register[schedule_impact_score] ) )
+			VAR Score = P * IF ( C >= S, C, S )
+			RETURN
+			    IF (
+			        HasUpdateOnThisDateForThisRisk,
+			        IF ( LatestStatus = "Closed", 0, Score )
+			    )
+		formatString: 0
+		displayFolder: ScoreHistory
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000034
+
+	/// Mirror of Score At Update with same lookback + Closed-zero + Realized-frozen logic, reading from Risk_Updates_AsNext for the Page 3 right-side comparison chart.
+	measure 'Score At Update Next' =
+			VAR ThisDate = MAX ( Risk_Updates_AsNext[update_date] )
+			VAR ThisRisk = SELECTEDVALUE ( Risk_Updates_AsNext[drillthrough_risk_id] )
+			// Mirror of the Score At Update guard. Risk_Updates_AsNext IS filtered correctly (its
+			// relationship works) so this guard is belt-and-suspenders here, but keeping the same
+			// pattern for symmetry and to harden against future propagation regressions.
+			VAR HasUpdateOnThisDateForThisRisk =
+			    COUNTROWS (
+			        FILTER (
+			            ALL ( Risk_Updates_AsNext ),
+			            Risk_Updates_AsNext[drillthrough_risk_id] = ThisRisk
+			                && Risk_Updates_AsNext[update_date] = ThisDate
+			        )
+			    ) > 0
+			VAR LatestStatus =
+			    MAXX (
+			        TOPN (
+			            1,
+			            FILTER (
+			                ALL ( Risk_Updates_AsNext ),
+			                Risk_Updates_AsNext[drillthrough_risk_id] = ThisRisk
+			                    && NOT ISBLANK ( Risk_Updates_AsNext[updated_status] )
+			                    && Risk_Updates_AsNext[update_date] <= ThisDate
+			            ),
+			            Risk_Updates_AsNext[update_date], DESC,
+			            Risk_Updates_AsNext[update_id], DESC
+			        ),
+			        Risk_Updates_AsNext[updated_status]
+			    )
+			VAR ScoreDate =
+			    IF (
+			        LatestStatus = "Realized",
+			        CALCULATE (
+			            MIN ( Risk_Updates_AsNext[update_date] ),
+			            FILTER (
+			                ALL ( Risk_Updates_AsNext ),
+			                Risk_Updates_AsNext[drillthrough_risk_id] = ThisRisk
+			                    && Risk_Updates_AsNext[updated_status] = "Realized"
+			            )
+			        ),
+			        ThisDate
+			    )
+			VAR PLookback =
+			    MAXX (
+			        TOPN (
+			            1,
+			            FILTER (
+			                ALL ( Risk_Updates_AsNext ),
+			                Risk_Updates_AsNext[drillthrough_risk_id] = ThisRisk
+			                    && NOT ISBLANK ( Risk_Updates_AsNext[probability_at_update] )
+			                    && Risk_Updates_AsNext[update_date] <= ScoreDate
+			            ),
+			            Risk_Updates_AsNext[update_date], DESC,
+			            Risk_Updates_AsNext[update_id], DESC
+			        ),
+			        Risk_Updates_AsNext[probability_at_update]
+			    )
+			VAR CLookback =
+			    MAXX (
+			        TOPN (
+			            1,
+			            FILTER (
+			                ALL ( Risk_Updates_AsNext ),
+			                Risk_Updates_AsNext[drillthrough_risk_id] = ThisRisk
+			                    && NOT ISBLANK ( Risk_Updates_AsNext[cost_impact_at_update] )
+			                    && Risk_Updates_AsNext[update_date] <= ScoreDate
+			            ),
+			            Risk_Updates_AsNext[update_date], DESC,
+			            Risk_Updates_AsNext[update_id], DESC
+			        ),
+			        Risk_Updates_AsNext[cost_impact_at_update]
+			    )
+			VAR SLookback =
+			    MAXX (
+			        TOPN (
+			            1,
+			            FILTER (
+			                ALL ( Risk_Updates_AsNext ),
+			                Risk_Updates_AsNext[drillthrough_risk_id] = ThisRisk
+			                    && NOT ISBLANK ( Risk_Updates_AsNext[schedule_impact_at_update] )
+			                    && Risk_Updates_AsNext[update_date] <= ScoreDate
+			            ),
+			            Risk_Updates_AsNext[update_date], DESC,
+			            Risk_Updates_AsNext[update_id], DESC
+			        ),
+			        Risk_Updates_AsNext[schedule_impact_at_update]
+			    )
+			VAR P = COALESCE ( PLookback, MAX ( Risk_Register[probability_score] ) )
+			VAR C = COALESCE ( CLookback, MAX ( Risk_Register[cost_impact_score] ) )
+			VAR S = COALESCE ( SLookback, MAX ( Risk_Register[schedule_impact_score] ) )
+			VAR Score = P * IF ( C >= S, C, S )
+			RETURN
+			    IF (
+			        HasUpdateOnThisDateForThisRisk,
+			        IF ( LatestStatus = "Closed", 0, Score )
+			    )
+		formatString: 0
+		displayFolder: NextRisk
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000035
+
+	/// Text describing what changed at THIS Risk_Updates row. Lifecycle-aware:
+	/// - First update for this risk (no prior update_date): "Initial: P=4, C=4, S=3" with the seeded baseline scores.
+	/// - status_after = "Realized" on this row: "Realized at score N" where N is the locked-in score.
+	/// - status_after = "Closed" on this row: "Closed → 0".
+	/// - Score columns populated: "P=4, C=2, S=3" listing only the non-null components.
+	/// - Otherwise "" (narrative-only update, no score change).
+	measure 'Score Change Display' =
+			VAR ThisDate = MAX ( Risk_Updates[update_date] )
+			VAR ThisRisk = SELECTEDVALUE ( Risk_Register[risk_id] )
+			VAR ThisStatus = SELECTEDVALUE ( Risk_Updates[updated_status] )
+			VAR P = SELECTEDVALUE ( Risk_Updates[probability_at_update] )
+			VAR C = SELECTEDVALUE ( Risk_Updates[cost_impact_at_update] )
+			VAR S = SELECTEDVALUE ( Risk_Updates[schedule_impact_at_update] )
+			VAR PriorCount =
+			    CALCULATE (
+			        COUNTROWS ( Risk_Updates ),
+			        FILTER (
+			            ALL ( Risk_Updates ),
+			            Risk_Updates[risk_id] = ThisRisk
+			                && Risk_Updates[update_date] < ThisDate
+			        )
+			    )
+			VAR IsFirstUpdate = COALESCE ( PriorCount, 0 ) = 0
+			VAR PStr = IF ( NOT ISBLANK ( P ), "P=" & P, "" )
+			VAR CStr = IF ( NOT ISBLANK ( C ), "C=" & C, "" )
+			VAR SStr = IF ( NOT ISBLANK ( S ), "S=" & S, "" )
+			VAR ScoreParts =
+			    PStr
+			        & IF ( LEN ( PStr ) > 0 && LEN ( CStr ) > 0, ", ", "" )
+			        & CStr
+			        & IF ( LEN ( SStr ) > 0 && ( LEN ( PStr ) > 0 || LEN ( CStr ) > 0 ), ", ", "" )
+			        & SStr
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ThisStatus = "Closed", "Closed → 0",
+			        ThisStatus = "Realized" && LEN ( ScoreParts ) > 0, "Realized at " & [Score At Update],
+			        ThisStatus = "Realized", "Realized at " & [Score At Update],
+			        IsFirstUpdate && LEN ( ScoreParts ) > 0, "Initial: " & ScoreParts,
+			        ScoreParts
+			    )
+		displayFolder: ScoreHistory
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000036
+
+	measure 'Score Change Display Next' =
+			VAR ThisDate = MAX ( Risk_Updates_AsNext[update_date] )
+			VAR ThisRisk = SELECTEDVALUE ( Risk_Updates_AsNext[drillthrough_risk_id] )
+			VAR ThisStatus = SELECTEDVALUE ( Risk_Updates_AsNext[updated_status] )
+			VAR P = SELECTEDVALUE ( Risk_Updates_AsNext[probability_at_update] )
+			VAR C = SELECTEDVALUE ( Risk_Updates_AsNext[cost_impact_at_update] )
+			VAR S = SELECTEDVALUE ( Risk_Updates_AsNext[schedule_impact_at_update] )
+			VAR PriorCount =
+			    CALCULATE (
+			        COUNTROWS ( Risk_Updates_AsNext ),
+			        FILTER (
+			            ALL ( Risk_Updates_AsNext ),
+			            Risk_Updates_AsNext[drillthrough_risk_id] = ThisRisk
+			                && Risk_Updates_AsNext[update_date] < ThisDate
+			        )
+			    )
+			VAR IsFirstUpdate = COALESCE ( PriorCount, 0 ) = 0
+			VAR PStr = IF ( NOT ISBLANK ( P ), "P=" & P, "" )
+			VAR CStr = IF ( NOT ISBLANK ( C ), "C=" & C, "" )
+			VAR SStr = IF ( NOT ISBLANK ( S ), "S=" & S, "" )
+			VAR ScoreParts =
+			    PStr
+			        & IF ( LEN ( PStr ) > 0 && LEN ( CStr ) > 0, ", ", "" )
+			        & CStr
+			        & IF ( LEN ( SStr ) > 0 && ( LEN ( PStr ) > 0 || LEN ( CStr ) > 0 ), ", ", "" )
+			        & SStr
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ThisStatus = "Closed", "Closed → 0",
+			        ThisStatus = "Realized", "Realized at " & [Score At Update Next],
+			        IsFirstUpdate && LEN ( ScoreParts ) > 0, "Initial: " & ScoreParts,
+			        ScoreParts
+			    )
+		displayFolder: NextRisk
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000037
+
+	/// Mirror of Score At Update reading from Risk_Updates_AsCurrent (the parallel table whose drillthrough_risk_id self-references each row's risk_id, used to bypass the broken Risk_Updates -> Risk_Register filter propagation in the Service). Page 3 UpdatesHistory tableEx Score Change column reads this when the cell's row resolves to a Realized status. Same lifecycle semantics: Closed -> 0, Realized -> frozen at first-Realized update, otherwise P*MAX(C,S) with lookback + baseline fallback.
+	measure 'Score At Update Current' =
+			VAR ThisDate = MAX ( Risk_Updates_AsCurrent[update_date] )
+			VAR ThisRisk = SELECTEDVALUE ( Risk_Updates_AsCurrent[drillthrough_risk_id] )
+			VAR HasUpdateOnThisDateForThisRisk =
+			    COUNTROWS (
+			        FILTER (
+			            ALL ( Risk_Updates_AsCurrent ),
+			            Risk_Updates_AsCurrent[drillthrough_risk_id] = ThisRisk
+			                && Risk_Updates_AsCurrent[update_date] = ThisDate
+			        )
+			    ) > 0
+			VAR LatestStatus =
+			    MAXX (
+			        TOPN (
+			            1,
+			            FILTER (
+			                ALL ( Risk_Updates_AsCurrent ),
+			                Risk_Updates_AsCurrent[drillthrough_risk_id] = ThisRisk
+			                    && NOT ISBLANK ( Risk_Updates_AsCurrent[updated_status] )
+			                    && Risk_Updates_AsCurrent[update_date] <= ThisDate
+			            ),
+			            Risk_Updates_AsCurrent[update_date], DESC,
+			            Risk_Updates_AsCurrent[update_id], DESC
+			        ),
+			        Risk_Updates_AsCurrent[updated_status]
+			    )
+			VAR ScoreDate =
+			    IF (
+			        LatestStatus = "Realized",
+			        CALCULATE (
+			            MIN ( Risk_Updates_AsCurrent[update_date] ),
+			            FILTER (
+			                ALL ( Risk_Updates_AsCurrent ),
+			                Risk_Updates_AsCurrent[drillthrough_risk_id] = ThisRisk
+			                    && Risk_Updates_AsCurrent[updated_status] = "Realized"
+			            )
+			        ),
+			        ThisDate
+			    )
+			VAR PLookback =
+			    MAXX (
+			        TOPN (
+			            1,
+			            FILTER (
+			                ALL ( Risk_Updates_AsCurrent ),
+			                Risk_Updates_AsCurrent[drillthrough_risk_id] = ThisRisk
+			                    && NOT ISBLANK ( Risk_Updates_AsCurrent[probability_at_update] )
+			                    && Risk_Updates_AsCurrent[update_date] <= ScoreDate
+			            ),
+			            Risk_Updates_AsCurrent[update_date], DESC,
+			            Risk_Updates_AsCurrent[update_id], DESC
+			        ),
+			        Risk_Updates_AsCurrent[probability_at_update]
+			    )
+			VAR CLookback =
+			    MAXX (
+			        TOPN (
+			            1,
+			            FILTER (
+			                ALL ( Risk_Updates_AsCurrent ),
+			                Risk_Updates_AsCurrent[drillthrough_risk_id] = ThisRisk
+			                    && NOT ISBLANK ( Risk_Updates_AsCurrent[cost_impact_at_update] )
+			                    && Risk_Updates_AsCurrent[update_date] <= ScoreDate
+			            ),
+			            Risk_Updates_AsCurrent[update_date], DESC,
+			            Risk_Updates_AsCurrent[update_id], DESC
+			        ),
+			        Risk_Updates_AsCurrent[cost_impact_at_update]
+			    )
+			VAR SLookback =
+			    MAXX (
+			        TOPN (
+			            1,
+			            FILTER (
+			                ALL ( Risk_Updates_AsCurrent ),
+			                Risk_Updates_AsCurrent[drillthrough_risk_id] = ThisRisk
+			                    && NOT ISBLANK ( Risk_Updates_AsCurrent[schedule_impact_at_update] )
+			                    && Risk_Updates_AsCurrent[update_date] <= ScoreDate
+			            ),
+			            Risk_Updates_AsCurrent[update_date], DESC,
+			            Risk_Updates_AsCurrent[update_id], DESC
+			        ),
+			        Risk_Updates_AsCurrent[schedule_impact_at_update]
+			    )
+			VAR P = COALESCE ( PLookback, MAX ( Risk_Register[probability_score] ) )
+			VAR C = COALESCE ( CLookback, MAX ( Risk_Register[cost_impact_score] ) )
+			VAR S = COALESCE ( SLookback, MAX ( Risk_Register[schedule_impact_score] ) )
+			VAR Score = P * IF ( C >= S, C, S )
+			RETURN
+			    IF (
+			        HasUpdateOnThisDateForThisRisk,
+			        IF ( LatestStatus = "Closed", 0, Score )
+			    )
+		formatString: 0
+		displayFolder: ScoreHistory
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000040
+
+	/// Mirror of Score Change Display reading from Risk_Updates_AsCurrent. Page 3 UpdatesHistory tableEx Score Change column.
+	measure 'Score Change Display Current' =
+			VAR ThisDate = MAX ( Risk_Updates_AsCurrent[update_date] )
+			VAR ThisRisk = SELECTEDVALUE ( Risk_Updates_AsCurrent[drillthrough_risk_id] )
+			VAR ThisStatus = SELECTEDVALUE ( Risk_Updates_AsCurrent[updated_status] )
+			VAR P = SELECTEDVALUE ( Risk_Updates_AsCurrent[probability_at_update] )
+			VAR C = SELECTEDVALUE ( Risk_Updates_AsCurrent[cost_impact_at_update] )
+			VAR S = SELECTEDVALUE ( Risk_Updates_AsCurrent[schedule_impact_at_update] )
+			VAR PriorCount =
+			    CALCULATE (
+			        COUNTROWS ( Risk_Updates_AsCurrent ),
+			        FILTER (
+			            ALL ( Risk_Updates_AsCurrent ),
+			            Risk_Updates_AsCurrent[drillthrough_risk_id] = ThisRisk
+			                && Risk_Updates_AsCurrent[update_date] < ThisDate
+			        )
+			    )
+			VAR IsFirstUpdate = COALESCE ( PriorCount, 0 ) = 0
+			VAR PStr = IF ( NOT ISBLANK ( P ), "P=" & P, "" )
+			VAR CStr = IF ( NOT ISBLANK ( C ), "C=" & C, "" )
+			VAR SStr = IF ( NOT ISBLANK ( S ), "S=" & S, "" )
+			VAR ScoreParts =
+			    PStr
+			        & IF ( LEN ( PStr ) > 0 && LEN ( CStr ) > 0, ", ", "" )
+			        & CStr
+			        & IF ( LEN ( SStr ) > 0 && ( LEN ( PStr ) > 0 || LEN ( CStr ) > 0 ), ", ", "" )
+			        & SStr
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ThisStatus = "Closed", "Closed → 0",
+			        ThisStatus = "Realized" && LEN ( ScoreParts ) > 0, "Realized at " & [Score At Update Current],
+			        ThisStatus = "Realized", "Realized at " & [Score At Update Current],
+			        IsFirstUpdate && LEN ( ScoreParts ) > 0, "Initial: " & ScoreParts,
+			        ScoreParts
+			    )
+		displayFolder: ScoreHistory
+		lineageTag: 88a1b1c1-0001-4000-8000-000000000041
+
+	/// Single-value risk_id of the drilled-into risk on Page 3. Card visuals can't auto-aggregate Risk_Register[risk_id] because the column is set to summarizeBy: none (Don't summarize) - the visual renders blank without this measure wrapper. Powers the Page 3 RiskIdText card label above RiskTitle.
+	measure 'Selected Risk Id' = SELECTEDVALUE ( Risk_Register[risk_id], "" )
+		displayFolder: Display
+		lineageTag: 66f6a7b8-0006-4000-8000-000000000003
+
+	/// Returns 1 when the Risk_Updates_AsCurrent row's drillthrough_risk_id matches the page-filter Risk_Register[risk_id], else BLANK. Workaround for the relationship Risk_Updates_AsCurrent.drillthrough_risk_id -> Risk_Register.risk_id failing to propagate filter context to tableEx visuals (verified empirically: 128 rows in the M-loaded table but tableEx shows either 0 or all 128 depending on the visual). Page 3 UpdatesHistory tableEx applies a visual-level Advanced filter `= 1` on this measure to hide non-matching rows. SELECTEDVALUE on Risk_Register[risk_id] reads directly from the page filter (no propagation needed). SELECTEDVALUE on drillthrough_risk_id reads the current row's value within the tableEx group context.
+	measure 'Is Selected Risk Match AsCurrent' =
+			VAR ThisRisk = SELECTEDVALUE ( Risk_Register[risk_id] )
+			VAR RowDrillthrough = SELECTEDVALUE ( Risk_Updates_AsCurrent[drillthrough_risk_id] )
+			RETURN IF ( RowDrillthrough = ThisRisk, 1 )
+		formatString: 0
+		displayFolder: Display
+		lineageTag: 66f6a7b8-0006-4000-8000-000000000004
+
+	/// Mirror of Is Selected Risk Match AsCurrent, but reading from Risk_Updates_AsNext. Returns 1 when the row's drillthrough_risk_id (which points at the previous-in-score risk by Risk_Updates_AsNext design) matches the page-filter Risk_Register[risk_id]. Page 3 UpdatesHistory_Next tableEx applies a visual-level Advanced filter `= 1` on this measure to hide non-matching rows (i.e., to show only the "next" risk's updates).
+	measure 'Is Next Risk Match AsNext' =
+			VAR ThisRisk = SELECTEDVALUE ( Risk_Register[risk_id] )
+			VAR RowDrillthrough = SELECTEDVALUE ( Risk_Updates_AsNext[drillthrough_risk_id] )
+			RETURN IF ( RowDrillthrough = ThisRisk, 1 )
+		formatString: 0
+		displayFolder: Display
+		lineageTag: 66f6a7b8-0006-4000-8000-000000000005
+
+	/// Two-step "Highest Risk" selector for the "Drill-Through to Highest Risk" button on Page 2. Step 1: among Active risks (Current Status IN {"Open","Monitoring"}), find the maximum risk_score_overall. Step 2: return the lowest risk_id among the (possibly multiple) risks at that max score. TOPN with compound OrderBy (score DESC, risk_id ASC) returns the single winning row; MAXX extracts its risk_id. Active filter excludes Closed/Realized risks (drilling to a Realized risk is operationally meaningless). NOTE: Power BI's Categorical In filter on page-level rejects measure expressions in Values (engine error "Only scope filters can target a DataMember..."); the RiskDetail page filter must remain a literal. Query this measure (via Fabric CLI / scripts/run_dax.py) when source data changes and hand-update the literal in pbip/.../pages/RiskDetail/page.json. Right-click drillthrough from Page 2 TopRisks still overrides the literal with the source row's risk_id.
+	measure 'Top Risk ID' =
+			VAR TopRow =
+			    TOPN (
+			        1,
+			        FILTER ( ALL ( Risk_Register ), [Current Status] IN { "Open", "Monitoring" } ),
+			        Risk_Register[risk_score_overall], DESC,
+			        Risk_Register[risk_id], ASC
+			    )
+			RETURN MAXX ( TopRow, Risk_Register[risk_id] )
+		displayFolder: Display
+		lineageTag: 66f6a7b8-0006-4000-8000-000000000006
+
+	column Value
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 8d4d3f2b-ac2e-5023-9d6e-3f5c7b2f8e21
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Value]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition _Measures = calculated
+		mode: import
+		source = {BLANK()}
+
+	annotation PBI_Id = 9f12c3a4b5d6e7f8
+

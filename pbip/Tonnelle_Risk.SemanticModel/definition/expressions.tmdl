@@ -1,0 +1,8 @@
+/// absolute path to /source_data/
+expression Source_Folder = "C:\Users\jkhbu\OneDrive\Projects\powerbi\risk_register\source_data\" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 4d54e3f2-64ff-4ec1-9cc2-058771fac6a2
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Text
+

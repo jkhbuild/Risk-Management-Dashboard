@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "skills": {
+    "crafting-effective-readmes": {
+      "source": "softaworks/agent-toolkit",
+      "sourceType": "github",
+      "skillPath": "skills/crafting-effective-readmes/SKILL.md",
+      "computedHash": "cb11facecbb4a15f7ca6cfac2e740ac66798676c246c057879a71babb27c9a4f"
+    },
+    "pbi-report-design": {
+      "source": "data-goblin/power-bi-agentic-development",
+      "sourceType": "github",
+      "skillPath": "plugins/reports/skills/pbi-report-design/SKILL.md",
+      "computedHash": "cff0014d9b6f654002548c845baccb7d01d0bd7ca45c239bc38c8232182cf778"
+    },
+    "pbir-cli": {
+      "source": "data-goblin/power-bi-agentic-development",
+      "sourceType": "github",
+      "skillPath": "plugins/reports/skills/pbir-cli/SKILL.md",
+      "computedHash": "ef7306f805c4d00d822270e17d9ae4ce8881da589bbca4f0db38b8ae6fc44c9e"
+    },
+    "pbir-format": {
+      "source": "data-goblin/power-bi-agentic-development",
+      "sourceType": "github",
+      "skillPath": "plugins/pbip/skills/pbir-format/SKILL.md",
+      "computedHash": "395abbb62f099eaec6e30fcd212b492b65108fdaaa1764d0c480db7b708bba29"
+    },
+    "power-bi-dax-optimization": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/power-bi-dax-optimization/SKILL.md",
+      "computedHash": "e98206e9864acfbfec475a1213c2687c293f0ed9e4903b6a9dc271ff313d0944"
+    },
+    "power-bi-report-design-consultation": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/power-bi-report-design-consultation/SKILL.md",
+      "computedHash": "12dacbd64cd67369f810c094dc70427d4805788f4ec6b1257e17d8e6aed74cf1"
+    },
+    "powerbi-modeling": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/powerbi-modeling/SKILL.md",
+      "computedHash": "b98ebe4d3876548b0a10c1c97216fdf4d50799243ffbb38158b367574bbf19f5"
+    }
+  }
+}

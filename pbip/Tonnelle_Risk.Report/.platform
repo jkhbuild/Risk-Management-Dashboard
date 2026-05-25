@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "Tonnelle_Risk"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "6be240c0-17ad-442c-af05-4657c4c086e2"
+  }
+}

@@ -1,0 +1,138 @@
+table Risk_Updates
+	lineageTag: a6971fb3-b834-4b62-b897-3d04b02da596
+
+	column update_id
+		dataType: string
+		isHidden
+		lineageTag: 0be8312c-5380-40f0-a0bf-ba41fbe61d7b
+		summarizeBy: none
+		sourceColumn: update_id
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column risk_id
+		dataType: string
+		isHidden
+		lineageTag: fa5b7082-e383-4fff-b6c6-9c8628a5f3b5
+		summarizeBy: none
+		sourceColumn: risk_id
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column update_date
+		dataType: dateTime
+		formatString: MMM d
+		lineageTag: 973856b9-c2fc-49e1-b276-28addc87b009
+		summarizeBy: none
+		sourceColumn: update_date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column update_year
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 315f480b-0bc2-44a0-9262-cc8f31947882
+		summarizeBy: none
+		sourceColumn: update_year
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = User
+
+	column author
+		dataType: string
+		lineageTag: 32f77981-dc98-43e6-b53b-93429cbc6211
+		summarizeBy: none
+		sourceColumn: author
+
+		annotation SummarizationSetBy = Automatic
+
+	column note
+		dataType: string
+		lineageTag: 7d95df67-3dc1-4f15-a140-e8fcf30a6d79
+		summarizeBy: none
+		sourceColumn: note
+
+		annotation SummarizationSetBy = Automatic
+
+	column updated_status
+		dataType: string
+		lineageTag: 98c2563c-8d0b-4fd2-8f27-4a4bab6f751d
+		summarizeBy: none
+		sourceColumn: updated_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column probability_at_update
+		dataType: int64
+		formatString: 0
+		lineageTag: d11470b6-ca1d-499c-9eab-fdc2d2dcfe53
+		summarizeBy: sum
+		sourceColumn: probability_at_update
+
+		annotation SummarizationSetBy = Automatic
+
+	column cost_impact_at_update
+		dataType: int64
+		formatString: 0
+		lineageTag: 397c7bca-f45e-463e-a576-bd17601f9f68
+		summarizeBy: sum
+		sourceColumn: cost_impact_at_update
+
+		annotation SummarizationSetBy = Automatic
+
+	column schedule_impact_at_update
+		dataType: int64
+		formatString: 0
+		lineageTag: 7ae96f43-e5ba-4bd3-a1f6-e04764185137
+		summarizeBy: sum
+		sourceColumn: schedule_impact_at_update
+
+		annotation SummarizationSetBy = Automatic
+
+	column related_risk_level = LOOKUPVALUE(Risk_Register[risk_level], Risk_Register[risk_id], Risk_Updates[risk_id])
+		dataType: string
+		isHidden
+		lineageTag: c1d2e3f4-aaaa-4001-8001-000000000001
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Risk_Updates = m
+		mode: import
+		source =
+				let
+				    SourcePath = Source_Folder & "Tonnelle_Risk_Updates_MASTER.xlsx",
+				    Source = Excel.Workbook(File.Contents(SourcePath), null, true),
+				    Sheet = Source{[Item="Risk_Updates", Kind="Sheet"]}[Data],
+				    Promoted = Table.PromoteHeaders(Sheet, [PromoteAllScalars=true]),
+				    IdAsText = Table.TransformColumnTypes(Promoted, {{"update_id", type text}}),
+				    DateConverted = Table.TransformColumns(IdAsText, {{"update_date", Date.From, type date}}),
+				    EnsureUS = if Table.HasColumns(DateConverted, "updated_status") then DateConverted else Table.AddColumn(DateConverted, "updated_status", each null, type text),
+				    EnsureP = if Table.HasColumns(EnsureUS, "probability_at_update") then EnsureUS else Table.AddColumn(EnsureUS, "probability_at_update", each null, Int64.Type),
+				    EnsureC = if Table.HasColumns(EnsureP, "cost_impact_at_update") then EnsureP else Table.AddColumn(EnsureP, "cost_impact_at_update", each null, Int64.Type),
+				    EnsureS = if Table.HasColumns(EnsureC, "schedule_impact_at_update") then EnsureC else Table.AddColumn(EnsureC, "schedule_impact_at_update", each null, Int64.Type),
+				    Typed = Table.TransformColumnTypes(EnsureS, {
+				        {"risk_id", type text},
+				        {"update_year", Int64.Type},
+				        {"author", type text},
+				        {"note", type text},
+				        {"updated_status", type text},
+				        {"probability_at_update", Int64.Type},
+				        {"cost_impact_at_update", Int64.Type},
+				        {"schedule_impact_at_update", Int64.Type}
+				    })
+				in
+				    Typed
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
