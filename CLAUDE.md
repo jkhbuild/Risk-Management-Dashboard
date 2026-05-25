@@ -36,7 +36,15 @@ RecentRiskUpdates CF attempt (REVERTED, on-disk vs Service may be desynced if fi
 
 RiskDetail page visibility change: removed `visibility: HiddenInViewMode` from `RiskDetail/page.json`. Trade-off: "Risk Detail" page tab now appears in the Service bottom strip. Required because `visualLink.type: PageNavigation` to a hidden+Drillthrough page is silently no-op'd in the Service (only Drillthrough-source buttons can target hidden drillthrough pages). Affects the Detail page grey "Drill-through to Top Risk →" button at visual ID `5597be81ddb57c325448`. Lesson promoted to powerbi-lessons skill §2.
 
-**Project status: CLOSED 2026-05-25.** User declared project done after the CF revert; final Desktop publish not run, so the Service may still show the broken RecentRiskUpdates and non-firing drill-through button until a future publish lands the on-disk fixes. All 13 phases shipped, Fabric CLI operational, lessons promoted. No further work planned.
+**2026-05-25 PM addendum** (drill-through button fix + repo setup; supersedes the AM "non-firing drill-through button" caveat below):
+
+Drill-through button (Page 2 visual `5597be81ddb57c325448`) made functional after multiple iterations. Final text "Drill-Through to Highest Risk  ↓" (Unicode ↓ in title text, since adding an icon spawned out-of-line with the title), fill `#5a5a5a` Literal, outline `#1a1a1a` Literal, position upper-right above TopRisks. Two distinct rendering issues uncovered, both promoted to powerbi-lessons skill §2: (1) actionButton `objects.fill.fillColor` / `objects.outline.lineColor` need `Literal` hex (`ThemeDataColor` with Percent silently no-ops in Service even with valid JSON); (2) actionButton title chrome eats the button shape at small heights (≤~30px) — title chrome consumes fontSize + spaceBelowTitle pixels, leaving the button shape with negative space, so fill/outline/click area never render. Symptom triad: small h + title visible + fill/outline invisible despite valid JSON.
+
+RiskDetail page filter literal updated `TONN-CON.05` → `TONN-CON.11` per user-clarified two-step "Highest Risk" rule: max `risk_score_overall` among Active risks (`Current Status IN {Open,Monitoring}`), tie-broken by lowest `risk_id` ASC. Current state: three risks tie at score 25 (.11 Open, .21 Monitoring, .22 Open); .11 wins on id. `[Top Risk ID]` measure docstring expanded to document the Categorical In engine restriction (rejects measure expressions in Values) and the re-query workflow: `python scripts/run_dax.py 'EVALUATE ROW("TopRiskId", [Top Risk ID])'`, then hand-update the literal in `pbip/.../pages/RiskDetail/page.json`. Right-click drillthrough from Page 2 TopRisks continues to override the literal at runtime (drillthrough binding intact).
+
+Git initialized at project root, pushed to https://github.com/jkhbuild/Risk-Management-Dashboard (public, `jkhbuild`). Initial commit `5eec8cd`, 115 files / 2.0 MB. `.gitignore` extended: `.claude/`, `.agents/`, `**/.pbi/` (broadened from two specific files to the whole folder), legacy `riskregister.Report/` + `riskregister.SemanticModel/`. Gitleaks 8.30.1 installed via winget; local pre-commit hook at `.git/hooks/pre-commit` runs `gitleaks git --staged --redact --verbose`, fail-closed on detection. Verified blocking 4 fake-secret patterns (AWS access key, generic API key, GitHub PAT, Stripe key). AWS's documented example keys (e.g. `AKIAIOSFODNN7EXAMPLE`) are allowlisted in gitleaks defaults; random-looking keys are caught.
+
+**Project status: CLOSED 2026-05-25 (PM addendum applied).** All 13 phases shipped, all regressions cleared, button functional, code under version control with secret-scanning gate, lessons promoted. Final Desktop publish pending; until then Service may still show the prior button state.
 
 **2026-05-24 PM Bundle 2 + 3 sessions** (status surfacing + score history; only Page 3 visuals touched after the user took ownership of Pages 1-2 styling).
 
@@ -322,6 +330,9 @@ DAX measure returns `data:image/svg+xml;utf8,<svg>...</svg>`. Column Data catego
 
 ### Fabric CLI (DAX verification against published Service)
 Operational 2026-05-25. Full workflow in `docs/fabric_cli.md`. Account `JustinHwang@jhprojectcontrols.onmicrosoft.com`; workspace `e3bf1016-3e76-48d3-aea9-bfe12b955abe`; dataset `76460c68-be78-43aa-9b2e-7d195cc6e606`. Bare `fab` resolves (Scripts dir on user PATH). Run DAX via `python scripts/run_dax.py 'EVALUATE ROW(\"X\", [Measure])'`. Ad-hoc REST: `fab api -A powerbi <relative-path>`. Auth refresh requires a real console (`fab auth login` fails inside non-TTY shells).
+
+### Git / secret scanning
+Repository: https://github.com/jkhbuild/Risk-Management-Dashboard (public, `main` branch, identity `jkhbuild <jkh.build@gmail.com>`). Local pre-commit hook at `.git/hooks/pre-commit` runs `gitleaks git --staged --redact --verbose`; fail-closed on detection, with PATH-resilient fallback to the winget install location. Bypass with `git commit --no-verify` only when certain a flagged value is a false positive. Hook is local-only (not in worktree); after a fresh clone, reinstall via `winget install --id gitleaks.gitleaks` then copy the hook from a prior install or recreate per the addendum in Status.
 
 ## Power BI gotchas
 
